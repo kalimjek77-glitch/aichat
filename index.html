@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Spin Wheel Ranking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #0b0e1a;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        /* MAIN CONTAINER */
+        .container {
+            max-width: 480px;
+            width: 100%;
+            height: 100%;
+            max-height: 780px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px 10px 16px;
+            background: transparent;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f7e05e, #f9a95d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 4px 14px;
+            border-radius: 40px;
+            color: #aab;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .status-badge .num {
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* CONTROLS */
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            margin-bottom: 10px;
+        }
+        .controls .input-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+        .controls input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.25s;
+            height: 48px;
+        }
+        .controls input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .controls input:focus {
+            border-color: #f9a95d;
+            background: rgba(255, 255, 255, 0.09);
+            box-shadow: 0 0 0 4px rgba(249, 169, 93, 0.15);
+        }
+
+        .controls button {
+            padding: 0;
+            border: none;
+            border-radius: 60px;
+            font-size: 22px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ccd;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+        .controls button:active {
+            transform: scale(0.92);
+        }
+        .btn-add {
+            background: linear-gradient(135deg, #4ECDC4, #44b39d);
+            color: #fff;
+            border: none;
+        }
+        .btn-add:active {
+            transform: scale(0.92);
+        }
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ccd;
+        }
+
+        /* WHEEL */
+        .wheel-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1 1 auto;
+            min-height: 0;
+            margin: 4px 0;
+        }
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1/1;
+            touch-action: none;
+        }
+        .wheel-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 50%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            touch-action: none;
+        }
+        .pointer {
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+            pointer-events: none;
+        }
+        .pointer svg {
+            width: 36px;
+            height: 42px;
+            display: block;
+        }
+
+        /* ACTION ROW */
+        .action-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+        .btn-spin {
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f7e05e, #f9a95d);
+            color: #1a1f33;
+            transition: all 0.3s;
+            box-shadow: 0 8px 28px rgba(249, 169, 93, 0.30);
+            width: 74px;
+            height: 74px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .btn-spin:active:not(:disabled) {
+            transform: scale(0.92);
+        }
+        .btn-spin:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-toggle-rank {
+            padding: 0 18px;
+            border: none;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ccd;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s;
+            height: 48px;
+            align-self: center;
+        }
+        .btn-toggle-rank:active {
+            transform: scale(0.94);
+        }
+        .btn-toggle-rank span {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* RANKING OVERLAY */
+        .rank-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 14, 26, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px 16px 30px;
+            z-index: 1000;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .rank-overlay.open {
+            display: flex;
+        }
+
+        .rank-overlay .close-btn {
+            align-self: flex-end;
+            background: none;
+            border: none;
+            font-size: 28px;
+            font-weight: 300;
+            color: #fff;
+            cursor: pointer;
+            padding: 8px 12px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .rank-overlay .close-btn:active {
+            transform: scale(0.85);
+        }
+
+        .rank-overlay h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #eee;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rank-overlay .rank-list {
+            list-style: none;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 4px;
+        }
+        .rank-overlay .rank-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid transparent;
+            animation: rankSlide 0.3s ease-out;
+        }
+        .rank-overlay .rank-item .rank-num {
+            font-size: 18px;
+            font-weight: 700;
+            min-width: 36px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .rank-overlay .rank-item .name {
+            font-size: 18px;
+            font-weight: 500;
+            color: #eee;
+            flex: 1;
+        }
+        .rank-overlay .rank-item.gold {
+            border-left-color: #f7e05e;
+            background: rgba(247, 224, 94, 0.08);
+        }
+        .rank-overlay .rank-item.gold .rank-num {
+            color: #f7e05e;
+        }
+        .rank-overlay .rank-item.silver {
+            border-left-color: #c0c8d8;
+            background: rgba(192, 200, 216, 0.06);
+        }
+        .rank-overlay .rank-item.silver .rank-num {
+            color: #c0c8d8;
+        }
+        .rank-overlay .rank-item.bronze {
+            border-left-color: #d4a574;
+            background: rgba(212, 165, 116, 0.06);
+        }
+        .rank-overlay .rank-item.bronze .rank-num {
+            color: #d4a574;
+        }
+
+        .rank-overlay .empty-message {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 16px;
+            font-style: italic;
+            padding: 30px 0;
+            text-align: center;
+        }
+
+        @keyframes rankSlide {
+            0% { opacity: 0; transform: translateX(-12px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        /* CELEBRATION */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+            opacity: 0;
+        }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(-20px) rotate(0deg) scale(1); }
+            100% { opacity: 0; transform: translateY(110vh) rotate(720deg) scale(0.3); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-height: 640px) {
+            .container { padding: 6px 8px 10px; }
+            .header h1 { font-size: 20px; }
+            .controls input { height: 40px; font-size: 14px; padding: 6px 12px; }
+            .controls button { width: 40px; height: 40px; font-size: 18px; }
+            .btn-spin { width: 60px; height: 60px; font-size: 22px; }
+            .btn-toggle-rank { height: 40px; font-size: 14px; padding: 0 14px; }
+            .pointer svg { width: 28px; height: 34px; }
+        }
+
+        @media (max-width: 380px) {
+            .header h1 { font-size: 18px; }
+            .status-badge { font-size: 11px; padding: 2px 10px; }
+            .btn-spin { width: 56px; height: 56px; font-size: 20px; }
+        }
+
+        .rank-overlay::-webkit-scrollbar {
+            width: 4px;
+        }
+        .rank-overlay::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+        }
+        .rank-overlay::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>Spin Ranking</h1>
+        <div class="status-badge">Remaining: <span class="num" id="remainingCount">0</span></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+        <div class="input-wrap">
+            <input type="text" id="nameInput" placeholder="Add name…" autocomplete="off" />
+        </div>
+        <button class="btn-add" id="addBtn" title="Add name">+</button>
+        <button class="btn-reset" id="resetBtn" title="Reset all">↻</button>
+    </div>
+
+    <!-- WHEEL -->
+    <div class="wheel-wrapper">
+        <div class="wheel-container" id="wheelContainer">
+            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+            <div class="pointer" id="pointer">
+                <svg viewBox="0 0 42 48" fill="none">
+                    <defs>
+                        <filter id="pointerShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.5"/>
+                        </filter>
+                        <linearGradient id="pointerGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+                            <stop offset="0%" stop-color="#fff" />
+                            <stop offset="100%" stop-color="#f0e6d0" />
+                        </linearGradient>
+                    </defs>
+                    <polygon points="21,44 2,4 40,4" fill="url(#pointerGrad)" stroke="#1a1f33" stroke-width="2.5" filter="url(#pointerShadow)"/>
+                    <polygon points="21,38 7,8 35,8" fill="rgba(255,255,255,0.2)" stroke="none"/>
+                    <circle cx="21" cy="6" r="4" fill="#f9a95d" stroke="#1a1f33" stroke-width="2" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION ROW -->
+    <div class="action-row">
+        <button class="btn-spin" id="spinBtn" title="Spin the wheel">▶</button>
+        <button class="btn-toggle-rank" id="toggleRankBtn"><span>☰</span> Rankings</button>
+    </div>
+
+</div>
+
+<!-- RANKING OVERLAY -->
+<div class="rank-overlay" id="rankOverlay">
+    <button class="close-btn" id="closeRankBtn">✕</button>
+    <h2>Rankings</h2>
+    <ul class="rank-list" id="rankListOverlay">
+        <li class="empty-message">No rankings yet — spin the wheel!</li>
+    </ul>
+</div>
+
+<!-- CELEBRATION -->
+<div class="celebration" id="celebrationContainer"></div>
+
+<script>
+    // ============================================================
+    //  STATE
+    // ============================================================
+    const state = {
+        names: [],
+        ranked: [],
+        remaining: [],
+        rotation: 0,
+        isSpinning: false,
+        colors: [
+            '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7',
+            '#DDA0DD','#FF8A5C','#A8E6CF','#FFB7B2','#B5B8C3',
+            '#F7DC6F','#BB8FCE','#85C1E9','#F1948A','#82E0AA',
+            '#F8C471','#D7BDE2','#A3E4D7','#FAD7A0','#AED6F1',
+            '#F9A95D','#7FB3D8','#E8A0BF','#9AD0C2','#F4D58D',
+            '#D4A5A5','#A8C4D6','#E6B8A2','#B8D9C6','#F2C6B6'
+        ],
+    };
+
+    // DOM refs
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const nameInput = document.getElementById('nameInput');
+    const addBtn = document.getElementById('addBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const spinBtn = document.getElementById('spinBtn');
+    const remainingCountEl = document.getElementById('remainingCount');
+    const rankListOverlay = document.getElementById('rankListOverlay');
+    const rankOverlay = document.getElementById('rankOverlay');
+    const toggleRankBtn = document.getElementById('toggleRankBtn');
+    const closeRankBtn = document.getElementById('closeRankBtn');
+    const celebrationContainer = document.getElementById('celebrationContainer');
+
+    // ============================================================
+    //  HELPERS
+    // ============================================================
+    function getColor(index) {
+        return state.colors[index % state.colors.length];
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ============================================================
+    //  WHEEL DRAWING
+    // ============================================================
+    function drawWheel(rotation) {
+        const w = canvas.width, h = canvas.height;
+        const cx = w/2, cy = h/2;
+        const radius = Math.min(w,h)/2 - 10;
+        ctx.clearRect(0,0,w,h);
+
+        const count = state.remaining.length;
+        if (count === 0) {
+            ctx.beginPath();
+            ctx.arc(cx,cy,radius,0,2*Math.PI);
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.font = '20px "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('All ranked!', cx, cy);
+            return;
+        }
+
+        const segAngle = (2*Math.PI)/count;
+        for (let i=0; i<count; i++) {
+            const start = i*segAngle + rotation;
+            const end = start + segAngle;
+            ctx.beginPath();
+            ctx.moveTo(cx,cy);
+            ctx.arc(cx,cy,radius,start,end);
+            ctx.closePath();
+            ctx.fillStyle = getColor(i);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const mid = start + segAngle/2;
+            const tr = radius*0.68;
+            const tx = cx + Math.cos(mid)*tr;
+            const ty = cy + Math.sin(mid)*tr;
+            const name = state.remaining[i];
+            ctx.save();
+            ctx.translate(tx,ty);
+            ctx.rotate(mid + (mid > Math.PI/2 ? Math.PI : 0));
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = 'rgba(0,0,0,0.7)';
+            ctx.shadowBlur = 8;
+            ctx.font = 'bold 18px "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            let display = name;
+            const maxW = radius*0.45;
+            if (ctx.measureText(display).width > maxW) {
+                while (ctx.measureText(display+'…').width > maxW && display.length > 1) display = display.slice(0,-1);
+                display += '…';
+            }
+            ctx.fillText(display,0,0);
+            ctx.restore();
+        }
+
+        // center dot
+        const grad = ctx.createRadialGradient(cx,cy,2,cx,cy,16);
+        grad.addColorStop(0,'rgba(255,255,255,0.25)');
+        grad.addColorStop(1,'rgba(255,255,255,0.02)');
+        ctx.beginPath();
+        ctx.arc(cx,cy,16,0,2*Math.PI);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx,cy,6,0,2*Math.PI);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx,cy,radius,0,2*Math.PI);
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+
+    // ============================================================
+    //  GET SEGMENT AT POINTER
+    // ============================================================
+    function getSegmentAtPointer(rotation) {
+        const count = state.remaining.length;
+        if (count === 0) return -1;
+        const segAngle = (2*Math.PI)/count;
+        const pointerAngle = -Math.PI/2;
+        let angle = (pointerAngle - rotation) % (2*Math.PI);
+        angle = ((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        return Math.floor(angle / segAngle);
+    }
+
+    // ============================================================
+    //  SPIN LOGIC — exactly 5 seconds
+    // ============================================================
+    function spinWheel() {
+        if (state.isSpinning) return;
+        if (state.remaining.length === 0) {
+            spinBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => spinBtn.style.transform = '', 150);
+            return;
+        }
+
+        state.isSpinning = true;
+        spinBtn.disabled = true;
+        spinBtn.textContent = '◼';
+
+        const targetIdx = Math.floor(Math.random() * state.remaining.length);
+        const extraSpins = 5 + Math.random() * 4;
+        const offset = Math.random() * (2*Math.PI/state.remaining.length);
+        const segAngle = (2*Math.PI)/state.remaining.length;
+        let targetRot = -Math.PI/2 - (targetIdx*segAngle + offset);
+        targetRot += extraSpins * 2*Math.PI;
+        while (targetRot <= state.rotation) targetRot += 2*Math.PI;
+
+        const startRot = state.rotation;
+        const delta = targetRot - startRot;
+        const duration = 5000; // exactly 5 seconds
+        const startTime = performance.now();
+
+        function easeOutCubic(t) { return 1 - Math.pow(1-t,3); }
+
+        function animate(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = easeOutCubic(progress);
+            state.rotation = startRot + delta*eased;
+            drawWheel(state.rotation);
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                state.rotation = targetRot;
+                drawWheel(state.rotation);
+                const winnerIdx = getSegmentAtPointer(state.rotation);
+                if (winnerIdx >= 0 && winnerIdx < state.remaining.length) {
+                    rankWinner(state.remaining[winnerIdx]);
+                } else {
+                    const fallback = Math.floor(Math.random() * state.remaining.length);
+                    if (state.remaining.length > 0) rankWinner(state.remaining[fallback]);
+                }
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+
+    // ============================================================
+    //  RANK WINNER
+    // ============================================================
+    function rankWinner(name) {
+        const idx = state.remaining.indexOf(name);
+        if (idx === -1) { finishSpin(); return; }
+        state.remaining.splice(idx, 1);
+        const rank = state.ranked.length + 1;
+        state.ranked.push({ name, rank });
+
+        triggerCelebration(name);
+        updateUI();
+
+        if (state.remaining.length === 0) {
+            spinBtn.textContent = '✔';
+            spinBtn.disabled = true;
+            state.isSpinning = false;
+            drawWheel(state.rotation);
+            updateUI();
+            return;
+        }
+        finishSpin();
+    }
+
+    function finishSpin() {
+        state.isSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.textContent = '▶';
+        drawWheel(state.rotation);
+        updateUI();
+    }
+
+    // ============================================================
+    //  CELEBRATION
+    // ============================================================
+    function triggerCelebration(name) {
+        const colors = ['#FF6B6B','#4ECDC4','#FFEAA7','#FF8A5C','#DDA0DD','#45B7D1','#F7DC6F','#FFB7B2','#82E0AA','#BB8FCE'];
+        const container = celebrationContainer;
+        container.innerHTML = '';
+        const count = 50 + Math.floor(Math.random()*30);
+        for (let i=0; i<count; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti-piece';
+            const size = 5 + Math.random()*10;
+            const isCircle = Math.random() > 0.5;
+            el.style.width = isCircle ? size+'px' : size*0.6+'px';
+            el.style.height = isCircle ? size+'px' : size*0.9+'px';
+            el.style.borderRadius = isCircle ? '50%' : '2px';
+            el.style.background = colors[Math.floor(Math.random()*colors.length)];
+            el.style.left = Math.random()*100+'%';
+            el.style.top = '-10px';
+            el.style.animationDuration = (1.8 + Math.random()*2.2)+'s';
+            el.style.animationDelay = (Math.random()*0.6)+'s';
+            el.style.transform = `rotate(${Math.random()*360}deg)`;
+            container.appendChild(el);
+        }
+        setTimeout(() => container.innerHTML = '', 4500);
+    }
+
+    // ============================================================
+    //  UI UPDATE
+    // ============================================================
+    function updateUI() {
+        remainingCountEl.textContent = state.remaining.length;
+
+        if (state.remaining.length === 0 && state.ranked.length > 0) {
+            spinBtn.disabled = true;
+            spinBtn.textContent = '✔';
+        } else if (!state.isSpinning) {
+            spinBtn.disabled = false;
+            spinBtn.textContent = '▶';
+        }
+
+        // Update overlay — numbers only, no medals
+        if (state.ranked.length === 0) {
+            rankListOverlay.innerHTML = '<li class="empty-message">No rankings yet — spin the wheel!</li>';
+        } else {
+            rankListOverlay.innerHTML = state.ranked.map((item) => {
+                let cls = '';
+                if (item.rank === 1) cls = 'gold';
+                else if (item.rank === 2) cls = 'silver';
+                else if (item.rank === 3) cls = 'bronze';
+                return `<li class="rank-item ${cls}">
+                            <span class="rank-num">${item.rank}.</span>
+                            <span class="name">${escapeHtml(item.name)}</span>
+                        </li>`;
+            }).join('');
+        }
+    }
+
+    // ============================================================
+    //  NAME MANAGEMENT
+    // ============================================================
+    function addName() {
+        const val = nameInput.value.trim();
+        if (!val) return;
+        if (state.names.includes(val)) {
+            nameInput.style.borderColor = '#ff6b6b';
+            setTimeout(() => nameInput.style.borderColor = '', 600);
+            return;
+        }
+        state.names.push(val);
+        state.remaining.push(val);
+        nameInput.value = '';
+        nameInput.focus();
+        drawWheel(state.rotation);
+        updateUI();
+    }
+
+    function resetAll() {
+        if (state.isSpinning) return;
+        state.names = [];
+        state.ranked = [];
+        state.remaining = [];
+        state.rotation = 0;
+        drawWheel(0);
+        updateUI();
+        spinBtn.disabled = false;
+        spinBtn.textContent = '▶';
+        nameInput.value = '';
+        nameInput.focus();
+    }
+
+    // ============================================================
+    //  OVERLAY TOGGLE
+    // ============================================================
+    function openRankings() {
+        rankOverlay.classList.add('open');
+        updateUI();
+    }
+
+    function closeRankings() {
+        rankOverlay.classList.remove('open');
+    }
+
+    // ============================================================
+    //  EVENTS
+    // ============================================================
+    nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addName(); }
+    });
+    addBtn.addEventListener('click', addName);
+    resetBtn.addEventListener('click', resetAll);
+    spinBtn.addEventListener('click', spinWheel);
+    canvas.addEventListener('click', () => {
+        if (!state.isSpinning && state.remaining.length > 0) spinWheel();
+    });
+
+    toggleRankBtn.addEventListener('click', openRankings);
+    closeRankBtn.addEventListener('click', closeRankings);
+    rankOverlay.addEventListener('click', (e) => {
+        if (e.target === rankOverlay) closeRankings();
+    });
+
+    // ============================================================
+    //  INIT
+    // ============================================================
+    function init() {
+        drawWheel(0);
+        updateUI();
+    }
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => drawWheel(state.rotation), 100);
+    });
+
+    init();
+    console.log('Spin Wheel Ranking — 5s stop, numbers only, no emojis');
+</script>
+</body>
+</html>
